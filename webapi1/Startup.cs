@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Jaeger;
+using Jaeger.Samplers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -10,6 +12,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenTracing;
+using OpenTracing.Util;
 
 namespace webapi1
 {
@@ -26,6 +30,28 @@ namespace webapi1
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            // Use "OpenTracing.Contrib.NetCore" to automatically generate spans for ASP.NET Core, Entity Framework Core, ...
+            // See https://github.com/opentracing-contrib/csharp-netcore for details.
+            //services.AddOpenTracing();
+
+            // Adds the Jaeger Tracer.
+            services.AddSingleton<ITracer>(serviceProvider =>
+            {
+                var loggerFactory = serviceProvider.GetService<ILoggerFactory> ();
+                string serviceName = serviceProvider.GetRequiredService<IHostingEnvironment>().ApplicationName;
+
+                // This will log to a default localhost installation of Jaeger.
+                var tracer = new Tracer.Builder(serviceName)
+                    .WithLoggerFactory(loggerFactory)
+                    .WithSampler(new ConstSampler(true))
+                    .Build();
+
+                // Allows code that can't use DI to also access the tracer.
+                GlobalTracer.Register(tracer);
+
+                return tracer;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
