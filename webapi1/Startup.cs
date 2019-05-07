@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Jaeger;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTracing;
 using OpenTracing.Util;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace webapi1
 {
@@ -30,6 +32,13 @@ namespace webapi1
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info { Title = "webapi1", Version = "v1" });
+                var filePath = Path.Combine(System.AppContext.BaseDirectory, "MyApi.xml");
+                c.IncludeXmlComments(filePath);
+            });
 
             // Use "OpenTracing.Contrib.NetCore" to automatically generate spans for ASP.NET Core, Entity Framework Core, ...
             // See https://github.com/opentracing-contrib/csharp-netcore for details.
@@ -69,6 +78,12 @@ namespace webapi1
 
             app.UseHttpsRedirection();
             app.UseMvc();
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
         }
     }
 }
